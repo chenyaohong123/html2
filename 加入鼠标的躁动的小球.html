@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang='zh'>
+	<head>
+		<meta charset="UTF-8">
+		<title>加入鼠标的躁动小球三角连线</title>
+		<style>
+			#myCanvas{
+				background: dodgerblue;
+				display: block;
+				margin:0 auto;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="myCanvas" width="1000" height="600">您的浏览器不支持canvas,请升级!</canvas>
+	</body>
+	<script type="text/javascript">
+		var myCanvas = document.querySelector('#myCanvas');
+		var ctx = myCanvas.getContext('2d');//获取画笔
+		
+		var minX = 5,maxX = myCanvas.width-5;
+		var minY = 5,maxY = myCanvas.height-5;
+		var minR = 3,maxR = 5;
+		var minV = 4,maxV =-4;
+		//鼠标未移入canvas之前的位置 对象
+		var mouseObj ={
+			x:-1,
+			y:-1
+		};
+		//随机数
+		function rn(x,y){
+			return Math.round(Math.random()*(y-x)+x);
+		}
+		//封装球类 构造函数
+		/*
+			Ball():小球类
+			x,y小球圆心坐标
+			r 小球半径
+			bgColor 小球颜色
+			vx,vy水平方向和竖值方向的速度
+		*/
+		function Ball(x,y,r,bgColor,vx,vy){
+			this.x = x;
+			this.y = y;
+			this.r = r;
+			this.bgColor = bgColor;
+			this.vx = vx;
+			this.vy = vy;
+		}
+		//Ball的原型方法：碰壁反弹,绘制小球
+		Ball.prototype.draw = function(){
+			//碰壁置负
+			if(this.x<this.r || this.x >myCanvas.width-this.r){
+				this.vx = -this.vx;
+			}
+			if(this.y<this.r || this.y>myCanvas.height-this.r ) {
+				this.vy = -this.vy;
+			}
+			//改变圆心位置
+			this.x += this.vx;
+			this.y += this.vy;
+			//绘制
+			ctx.beginPath();
+			ctx.arc(this.x,this.y,this.r,0,2*Math.PI);
+			ctx.fillStyle = this.bgColor;
+			ctx.fill();
+		}
+		
+		//实例化小球
+		var ballArr = [];
+		function createBall(){
+			var x = rn(minX,maxX);
+			var y = rn(minY,maxY);
+			var r = rn(minR,maxR);
+			var bgColor = 'rgb('+rn(30,255)+','+rn(30,255)+','+rn(30,255)+')';
+			var vx = rn(minV,maxV);
+			var vy = rn(minV,maxV);
+			if(vx == 0){
+				vx += 1;
+			}
+			if(vy == 0){
+				vy -= 1;
+			}
+			
+			var newBall = new Ball(x,y,r,bgColor,vx,vy);
+			ballArr.push(newBall);
+			
+		}
+		for(var i=0;i<100;i++){
+			createBall();
+		}
+		console.log(ballArr);
+		
+		setInterval(function(){
+			ctx.clearRect(0,0,1000,600);
+			for(var i=0;i<ballArr.length;i++){		
+				ballArr[i].draw();
+			}
+			jugeTwoBall()//判断两球之间距离是否连线
+			judgeMouse();
+		},20);
+		
+		//分装计算两个点之间距离函数
+		function getDis(ball1,ball2){
+			//计算圆心距，根据位置
+			var dis = Math.sqrt(Math.pow(ball1.x - ball2.x,2)+Math.pow(ball1.y - ball2.y,2));
+			//返回值
+			if(dis <= 100){
+				return true;
+			}else{
+				return false;
+			}
+		}
+		
+		//用循环来计算两个小球之间的圆心距
+		//[a1,a2,a3,a4,a5]
+		function jugeTwoBall(){
+			for(var i=0;i<ballArr.length-1;i++){
+				for(var j=i+1; j<ballArr.length;j++){
+					//ballArr[i],ballArr[j]
+					var bol = getDis(ballArr[i],ballArr[j]);//返回布尔值
+					if(bol){
+						//划线
+						drawLine(ballArr[i],ballArr[j]);						
+					}
+				}
+			}
+		}
+		
+		//两个点之间的划线函数
+		function drawLine(ball1,ball2){
+			ctx.beginPath();
+			ctx.moveTo(ball1.x,ball1.y);
+			ctx.lineTo(ball2.x,ball2.y);
+			ctx.strokeStyle = 'rgba('+rn(30,255)+','+rn(30,255)+','+rn(30,255)+',0.5)';
+			ctx.stroke();
+		}
+		
+		//为canvas添加鼠标移动事件
+		myCanvas.onmousemove = function(e){
+			var e = event || window.event;
+			//获取鼠标基于canvas的坐标
+			var mouseX = e.clientX-myCanvas.offsetLeft;
+			var mouseY = e.clientY-myCanvas.offsetTop;
+			//为符合getDis函数和drawLine函数的逻辑，将鼠标的坐标封装成函数
+			mouseObj = {
+				x : mouseX,
+				y: mouseY
+			}					
+		}
+		//解决 鼠标移出继续会连线
+		myCanvas.onmouseout = function(){
+			mouseObj ={
+				x:-1,
+				y:-1
+			}
+		}
+		//判断鼠标位置和所有小球的位置关系
+		function judgeMouse(){
+			//用鼠标的坐标和所有的小球做距离的运算	
+			for(var i=0;i<ballArr.length;i++){
+				var bol = getDis(ballArr[i],mouseObj);
+				// mouseObj.x>0 解决鼠标在canvas外就开始连线
+				if(bol && mouseObj.x>0){
+					drawLine(ballArr[i],mouseObj	);	
+				}
+			}
+		}
+	</script>
+</html>
+
